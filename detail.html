@@ -56,7 +56,7 @@
               <a class="nav-link" aria-disabled="true">PAYMENT CONFIRMATION</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" aria-disabled="true">TRACK YOUR ORDER</a>
+              <a class="nav-link" href="track-order.html">TRACK YOUR ORDER</a>
             </li>
           </ul>
           <form class="d-flex" role="search">
@@ -84,8 +84,39 @@
     <div id="tes"></div>
     <div class="container mt-5">
       <div class="row">
-        <div class="col-lg-5 text-center" id="image-product">
-          <!-- <img src="assets/image/card2.png" alt="image" /> -->
+        <div class="col-lg-5 mt-3">
+          <div
+            id="carouselExampleIndicators"
+            class="carousel slide"
+            data-bs-ride="carousel"
+          >
+            <div class="carousel-indicators" id="indicator"></div>
+            <div class="carousel-inner" id="image-product"></div>
+            <button
+              class="carousel-control-prev"
+              type="button"
+              data-bs-target="#carouselExampleIndicators"
+              data-bs-slide="prev"
+            >
+              <span
+                class="carousel-control-prev-icon"
+                aria-hidden="true"
+              ></span>
+              <span class="visually-hidden">Previous</span>
+            </button>
+            <button
+              class="carousel-control-next"
+              type="button"
+              data-bs-target="#carouselExampleIndicators"
+              data-bs-slide="next"
+            >
+              <span
+                class="carousel-control-next-icon"
+                aria-hidden="true"
+              ></span>
+              <span class="visually-hidden">Next</span>
+            </button>
+          </div>
         </div>
         <div class="col-lg-7 mt-3">
           <h3 id="title-product"></h3>
@@ -177,7 +208,7 @@
     if (index === 0) {
       updatePrice(data.product_price);
       updateProductName(data.product_name);
-      updateImage(data.product_img);
+      // updateImage(data.product_img);
       updateDescription(data.product_description);
     }
   }
@@ -213,9 +244,40 @@
   }
 
   function updateImage(data) {
-    var image = `<img src="https://sistemtoko.com/img/user/demo/product/${data}" alt="image" style="width:70%" />`;
+    console.log(data);
+    var image = "";
+    var indicator = "";
+    var count = 0;
+    data.forEach(function (item) {
+      indicator += `
+      <li
+        data-bs-target="#carouselExampleIndicators"
+        data-bs-slide-to="${count}"
+        ${count === 0 ? 'class="active"' : ""}
+      ></li>
+    `;
+      image += `
+      <div class="carousel-item ${count === 0 ? "active" : ""}">
+        <img src="https://sistemtoko.com/img/user/demo/product/${
+          item.product_gallery_img
+        }" class="d-block w-100" alt="${item.product_gallery_img}" />
+      </div>
+    `;
+      count++;
+    });
+    $("#indicator").append(indicator);
     $("#image-product").append(image);
   }
+
+  $.get("https://sistemtoko.com/public/demo/product/" + id, function (data) {
+    try {
+      var parsedData = JSON.parse(data);
+      // console.log(parsedData);
+      updateImage(parsedData.gallery);
+    } catch (error) {
+      console.error("Gagal mengurai JSON:", error);
+    }
+  });
 
   $.get("https://sistemtoko.com/public/demo/varian/" + id, function (response) {
     response.forEach((data, index) => {
@@ -237,7 +299,7 @@
       $.get(
         "https://sistemtoko.com/public/demo/single/" + selectedvarian,
         function (data) {
-          console.log(data);
+          // console.log(data);
           product_id = data.product_id;
           product_name = data.product_name;
           product_img = `https://sistemtoko.com/img/user/demo/product/${data.product_img}`;

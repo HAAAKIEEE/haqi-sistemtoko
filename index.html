@@ -56,7 +56,7 @@
               <a class="nav-link" aria-disabled="true">PAYMENT CONFIRMATION</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" aria-disabled="true">TRACK YOUR ORDER</a>
+              <a class="nav-link" href="track-order.html">TRACK YOUR ORDER</a>
             </li>
           </ul>
           <form class="d-flex" role="search">
@@ -158,6 +158,42 @@
         <h3>T-SHIRT COLLECTION</h3>
       </div>
     </div>
+    <div class="container row justify-content-around mt-5">
+      <div class="col-lg-3">
+        <select
+          class="form-select"
+          aria-label="Default select example"
+          id="kategori"
+        >
+          <option selected value="[all]-[0]">Semua Kategori</option>
+          <script>
+            var kategroi = "";
+            $.get(
+              "https://demo.sistemtoko.com/demo/categories",
+              function (response) {
+                console.log(response);
+                response.aaData.forEach((data) => {
+                  kategroi += `<option value="[${data.keyword_name}]-[${data.keyword_id}]">${data.keyword_name}</option>`;
+                  // console.log(data);
+                });
+
+                $("#kategori").append(kategroi);
+              }
+            );
+          </script>
+        </select>
+      </div>
+      <div class="col-lg-9">
+        <input
+          type="text"
+          name="search_name"
+          id="search_name"
+          class="w-100 form-control"
+          placeholder="Cari nama product"
+        />
+        <input type="submit" value="submit" id="submit_button" />
+      </div>
+    </div>
     <div class="d-flex justify-content-center">
       <div class="text-center container" style="margin: 50px 0px">
         <hr style="float: left; width: 40%; border-top: 1px solid #000" />
@@ -224,12 +260,56 @@
 </html>
 
 <script>
-  var currentPage = 0;
-  var loading = false;
-  var allDataLoaded = false;
+  $(document).ready(function () {
+    var currentPage = 0;
+    var sorting = "latest";
+    var categories = "all";
+    var name_search = "none";
+    var number = "";
+    var category = "";
+    var loading = false;
+    var allDataLoaded = false;
+    var cardContainer = $("#card-container");
 
-  function populateCard(data) {
-    var card = `
+    var categoriesDropdown = $("#kategori");
+    var nama_search_input = $("#search_name");
+    var submit_button = $("#submit_button");
+
+    function loadData(category, number) {
+      if (loading || allDataLoaded) return;
+
+      loading = true;
+      $("#loader").show();
+      var apiUrl =
+        "https://sistemtoko.com/public/demo/product?page=" +
+        (currentPage + 1) +
+        "&sorting=" +
+        sorting;
+
+      if (category != "all" && number) {
+        apiUrl += "&categories=" + number + "&categories_name=" + category;
+      }
+
+      apiUrl += "&search_name=" + name_search;
+
+      console.log(apiUrl);
+      $.get(apiUrl, function (response) {
+        if (response.aaData.length === 0) {
+          allDataLoaded = true;
+          showAllDataLoaded();
+        } else {
+          response.aaData.forEach((data) => {
+            populateCard(data);
+          });
+          currentPage++;
+        }
+        loading = false;
+        $("#loader").hide();
+      });
+    }
+
+    function populateCard(data) {
+      var card = `
       <div class="card" style="width: 18rem">
         <img src="${data.photo}" class="card-img-top" alt="..." />
         <div class="card-body">
@@ -240,88 +320,47 @@
           </div>
         </div>
       </div>`;
-
-    $("#card-container").append(card);
-  }
-
-  function showAllDataLoaded() {
-    $("#card-container").append("<br/><p>data sudah muncul semua</p>");
-  }
-
-  function nextPage() {
-    if (loading || allDataLoaded) return;
-    loading = true;
-
-    $("#loader").show();
-
-    $.get(
-      "https://sistemtoko.com/public/demo/product?page=" + (currentPage + 1),
-      function (response) {
-        response.aaData.forEach((data) => {
-          console.log(data);
-          populateCard(data);
-        });
-        currentPage++;
-        loading = false;
-
-        $("#loader").hide();
-
-        if (response.aaData.length === 0) {
-          allDataLoaded = true;
-          showAllDataLoaded();
-        }
-      }
-    );
-  }
-  $(window).scroll(function () {
-    if (
-      $(window).scrollTop() >=
-      $(document).height() - $(window).height() - 300
-    ) {
-      nextPage();
+      cardContainer.append(card);
     }
-  });
-  $(document).ready(function () {
-    $.ajaxSetup({
-      headers: { "X-Requested-With": "XMLHttpRequest" },
+
+    function showAllDataLoaded() {
+      cardContainer.append("<br/><p>data sudah muncul semua</p>");
+    }
+
+    categoriesDropdown.on("change", function () {
+      var categories = $(this).val();
+      var matches = categories.match(/\[(.*?)\]-\[(\d+)\]/);
+
+      var category = matches[1];
+      var number = matches[2];
+
+      nama_search_input.val("");
+      name_search = "";
+
+      currentPage = 0;
+      cardContainer.empty();
+      allDataLoaded = false;
+      loadData(category, number);
     });
 
-    $.get("https://demo.sistemtoko.com/api-view/cart", function (data) {
-      $("#tes").append(data);
+    submit_button.on("click", function (event) {
+      categoriesDropdown.val("[all]-[0]");
+      name_search = nama_search_input.val();
+      currentPage = 0;
+      cardContainer.empty();
+      allDataLoaded = false;
+      loadData();
     });
-    $("#button").click(function () {
-      var selectedvarian = $("#select-varian option:selected").val();
-      $.get(
-        "https://sistemtoko.com/public/demo/single/" + selectedvarian,
-        function (data) {
-          console.log(data);
-          product_id = data.product_id;
-          product_name = data.product_name;
-          product_img = `https://sistemtoko.com/img/user/demo/product/${data.product_img}`;
-          product_price = parseFloat(data.product_price).toString();
-          product_qty = 0;
-          product_weight = data.product_weight;
-          product_stock = data.product_qty_stock;
-          varian = data.varian_keyword_value;
-          window.addCart(
-            product_id,
-            product_name + " - " + varian,
-            product_img,
-            product_price,
-            product_weight
-          );
-        }
-      );
-    });
-  });
 
-  $(document).ready(function () {
-    $("#sidebarCart").click(function () {
-      if ($("#cart-wrapper").hasClass("toggled")) {
-        $("#cart-wrapper").removeClass("toggled");
-      } else {
-        $("#cart-wrapper").addClass("toggled");
+    $(window).scroll(function () {
+      if (
+        $(window).scrollTop() >=
+        $(document).height() - $(window).height() - 300
+      ) {
+        loadData();
       }
     });
+
+    loadData();
   });
 </script>
